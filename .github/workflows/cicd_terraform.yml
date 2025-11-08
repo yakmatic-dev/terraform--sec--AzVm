@@ -5,6 +5,10 @@ on:
     branches:
       - main
       - develop
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
 
 env:
   TF_VERSION: '1.6.0'
@@ -14,7 +18,7 @@ env:
   ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
   ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
   ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-  # Terraform state backend secrets
+  # Terraform state backend
   BACKEND_RESOURCE_GROUP_NAME: ${{ secrets.TF_STATE_RG }}
   BACKEND_STORAGE_ACCOUNT_NAME: ${{ secrets.TF_STATE_STORAGE }}
   BACKEND_CONTAINER_NAME: ${{ secrets.TF_STATE_CONTAINER }}
@@ -143,7 +147,7 @@ jobs:
               "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
             }
 
-      - name: Make Script Executable
+      - name: Make Terraform Script Executable
         run: chmod +x ./terraform-run.sh
 
       - name: Terraform Plan via Script
@@ -156,6 +160,31 @@ jobs:
           name: tfplan
           path: ${{ env.TERRAFORM_DIR }}/tfplan
           retention-days: 5
+
+      - name: Comment PR with Plan
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const output = `#### Terraform Plan 📖
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`
+            ${{ steps.plan.outputs.stdout }}
+            \`\`\`
+            
+            </details>
+            
+            *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            })
 
   terraform-apply:
     name: 'Terraform Apply'
@@ -184,7 +213,7 @@ jobs:
               "tenantId": "${{ secrets.AZURE_TENANT_ID }}"
             }
 
-      - name: Make Script Executable
+      - name: Make Terraform Script Executable
         run: chmod +x ./terraform-run.sh
 
       - name: Terraform Apply via Script
