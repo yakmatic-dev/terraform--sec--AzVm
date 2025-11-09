@@ -9,6 +9,10 @@ on:
   #  branches:
   #    - main
  # workflow_dispatch:
+permissions:
+ contents: read
+ security-events: write  # Required for uploading SARIF results
+ pull-requests: write
 
 env:
   TF_VERSION: '1.6.0'
