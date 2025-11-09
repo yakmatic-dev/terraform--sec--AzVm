@@ -1,4 +1,4 @@
-name: Terraform Azure CI/CD
+name: Terraform Azure CI/CD (Security-First)
 
 on:
   push:
@@ -9,37 +9,132 @@ on:
       - main
 
 jobs:
-  terraform:
-    name: 'Terraform Plan & Apply'
+  plan-and-scan:
+    name: Terraform Plan & Security Scan
     runs-on: ubuntu-latest
-
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
     env:
       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
       ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set up Terraform
-      uses: hashicorp/setup-terraform@v2
-      with:
-        terraform_version: 1.13.3
+      # ------------------------
+      # Cache Terraform providers & modules
+      # ------------------------
+      - name: Cache Terraform providers
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.terraform.d/plugin-cache
+            .terraform/providers
+          key: terraform-providers-${{ hashFiles('**/*.tf') }}
+          restore-keys: terraform-providers-
 
-    - name: Terraform Init
-      run: terraform init
+      - name: Cache Terraform modules
+        uses: actions/cache@v3
+        with:
+          path: .terraform/modules
+          key: terraform-modules-${{ hashFiles('**/*.tf') }}
+          restore-keys: terraform-modules-
 
-    - name: Terraform Format Check
-      run: terraform fmt -check
+      # ------------------------
+      # Setup Terraform
+      # ------------------------
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.13.3
 
-    - name: Terraform Validate
-      run: terraform validate
+      - name: Terraform Format Check
+        run: terraform fmt -check
 
-    - name: Terraform Plan
-      run: terraform plan -out=tfplan
+      - name: Terraform Validate
+        run: terraform validate
 
-    - name: Terraform Apply
-      if: github.ref == 'refs/heads/main'
-      run: terraform apply -auto-approve tfplan
+      # ------------------------
+      # Security Scans
+      # ------------------------
+      - name: Run Terrascan
+        id: terrascan
+        uses: tenable/terrascan-action@main
+        with:
+          iac_type: terraform
+          iac_version: v1.13
+          policy_type: azure
+          only_warn: true
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.8
+
+      - name: Run Checkov
+        id: checkov
+        uses: bridgecrewio/checkov-action@master
+        continue-on-error: true
+        with:
+          directory: .
+          framework: terraform
+          output_format: cli,sarif
+          output_file_path: console,results.sarif
+
+      - name: Upload Checkov SARIF file
+        uses: github/codeql-action/upload-sarif@v3
+        if: success() || failure()
+        with:
+          sarif_file: results.sarif
+
+      # ------------------------
+      # Terraform Init & Plan
+      # ------------------------
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
+
+      # ------------------------
+      # Optional: Infracost Estimate
+      # ------------------------
+      - name: Install Infracost
+        run: |
+          curl -sL https://downloads.infracost.io/infracost-0.11.18-linux-amd64.tar.gz | tar xz
+          sudo mv infracost /usr/local/bin/
+
+      - name: Run Infracost
+        run: infracost breakdown --path . --format table
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+
+  apply:
+    name: Terraform Apply (Manual Approval)
+    runs-on: ubuntu-latest
+    needs: plan-and-scan
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: ${{ steps.infracost.outputs.url || '' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.13.3
+
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
