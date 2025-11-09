@@ -30,21 +30,21 @@ jobs:
       # ------------------------
       # Cache Terraform providers & modules
       # ------------------------
-      - name: Cache Terraform providers
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.terraform.d/plugin-cache
-            .terraform/providers
-          key: terraform-providers-${{ hashFiles('**/*.tf') }}
-          restore-keys: terraform-providers-
+     # - name: Cache Terraform providers
+     #   uses: actions/cache@v3
+     #   with:
+     #     path: |
+     #       ~/.terraform.d/plugin-cache
+     #       .terraform/providers
+     #     key: terraform-providers-${{ hashFiles('**/*.tf') }}
+     #     restore-keys: terraform-providers-
 
-      - name: Cache Terraform modules
-        uses: actions/cache@v3
-        with:
-          path: .terraform/modules
-          key: terraform-modules-${{ hashFiles('**/*.tf') }}
-          restore-keys: terraform-modules-
+     # - name: Cache Terraform modules
+     #   uses: actions/cache@v3
+     #   with:
+     #     path: .terraform/modules
+     #     key: terraform-modules-${{ hashFiles('**/*.tf') }}
+     #     restore-keys: terraform-modules-
 
       # ------------------------
       # Setup Terraform
