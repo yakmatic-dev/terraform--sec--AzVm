@@ -4,9 +4,7 @@ on:
   push:
     branches:
       - main
- # pull_request:
- #   branches:
-  #    - main
+ 
 
 jobs:
   plan-and-scan:
@@ -25,26 +23,26 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       # ------------------------
       # Cache Terraform providers & modules
       # ------------------------
-     # - name: Cache Terraform providers
-     #   uses: actions/cache@v3
-     #   with:
-     #     path: |
-     #       ~/.terraform.d/plugin-cache
-     #       .terraform/providers
-     #     key: terraform-providers-${{ hashFiles('**/*.tf') }}
-     #     restore-keys: terraform-providers-
+      - name: Cache Terraform providers
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.terraform.d/plugin-cache
+            .terraform/providers
+          key: terraform-providers-${{ hashFiles('**/*.tf') }}
+          restore-keys: terraform-providers-
 
-     # - name: Cache Terraform modules
-     #   uses: actions/cache@v3
-     #   with:
-     #     path: .terraform/modules
-     #     key: terraform-modules-${{ hashFiles('**/*.tf') }}
-     #     restore-keys: terraform-modules-
+      - name: Cache Terraform modules
+        uses: actions/cache@v3
+        with:
+          path: .terraform/modules
+          key: terraform-modules-${{ hashFiles('**/*.tf') }}
+          restore-keys: terraform-modules-
 
       # ------------------------
       # Setup Terraform
@@ -53,10 +51,13 @@ jobs:
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.13.3
-      
+
+      # ------------------------
+      # Terraform Init (Backend using Azure AD Auth)
+      # ------------------------
       - name: Terraform Init
         run: terraform init -input=false
-  
+
       - name: Terraform Format Check
         run: terraform fmt -check
 
@@ -64,7 +65,7 @@ jobs:
         run: terraform validate
 
       # ------------------------
-      # Security Scans
+      # Security Scans (before plan)
       # ------------------------
       - name: Run Terrascan
         id: terrascan
@@ -97,11 +98,8 @@ jobs:
           sarif_file: results.sarif
 
       # ------------------------
-      # Terraform Init & Plan
+      # Terraform Plan
       # ------------------------
-      - name: Terraform Init
-        run: terraform init -input=false
-
       - name: Terraform Plan
         run: terraform plan -out=tfplan
 
@@ -125,11 +123,10 @@ jobs:
     if: github.ref == 'refs/heads/main'
     environment:
       name: production
-      url: ${{ steps.infracost.outputs.url || '' }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
