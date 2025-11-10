@@ -11,8 +11,8 @@ on:
 # Prevent multiple Terraform jobs from running at once
 # ------------------------
 concurrency:
-  group: terraform-${{ github.ref }}
-  cancel-in-progress: false
+  group: terraform-state-lock
+  cancel-in-progress: true
   
 jobs:
   plan-and-scan:
