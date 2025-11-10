@@ -60,6 +60,17 @@ jobs:
         with:
           terraform_version: 1.13.3
 
+      - name: Emergency Unlock
+        run: |
+          terraform init \
+              -backend-config="resource_group_name=${{ secrets.TF_STATE_RG }}" \
+              -backend-config="storage_account_name=${{ secrets.TF_STATE_STORAGE }}" \
+              -backend-config="container_name=${{ secrets.TF_STATE_CONTAINER }}" \
+              -backend-config="key=${{ secrets.TF_STATE_KEY }}" \
+              -backend-config="use_azuread_auth=true" \
+              -input=false
+          terraform force-unlock -force fa0664c3-f474-8c95-ddd7-d4dcd35cf635
+
       - name: Terraform Init
         run: |
           terraform init \
