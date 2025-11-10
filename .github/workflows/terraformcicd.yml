@@ -7,7 +7,13 @@ on:
   # pull_request:
   #   branches:
   #     - main.
-
+# ------------------------
+# Prevent multiple Terraform jobs from running at once
+# ------------------------
+concurrency:
+  group: terraform-azure
+  cancel-in-progress: false
+  
 jobs:
   plan-and-scan:
     name: Terraform Plan & Security Scan
