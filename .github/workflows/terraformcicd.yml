@@ -60,11 +60,12 @@ jobs:
         with:
           terraform_version: 1.13.3
 
-      - name: Force unlock Terraform state (if locked)
+      - name: Unlock state if locked
         run: |
-          LOCK_ID=$(terraform force-unlock --help >/dev/null 2>&1 && echo "") # Dummy init
-          terraform force-unlock -force "dummy" 2>/dev/null || echo "No lock to remove, continuing..."
+           echo "Attempting to unlock Terraform state (if locked)..."
+           terraform force-unlock -force fa0664c3-f474-8c95-ddd7-d4dcd35cf635 || echo "No active lock found."
         continue-on-error: true
+
 
 
       - name: Terraform Init
