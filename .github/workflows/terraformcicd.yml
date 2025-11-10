@@ -60,13 +60,9 @@ jobs:
         with:
           terraform_version: 1.13.3
 
-      - name: Unlock state if locked
+      - name: Terraform Plan
         run: |
-           echo "Attempting to unlock Terraform state (if locked)..."
-           terraform force-unlock -force fa0664c3-f474-8c95-ddd7-d4dcd35cf635 || echo "No active lock found."
-        continue-on-error: true
-
-
+          terraform plan -lock=false -out=tfplan
 
       - name: Terraform Init
         run: |
