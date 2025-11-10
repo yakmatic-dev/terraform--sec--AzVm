@@ -132,14 +132,18 @@ jobs:
       # Cleanup on Failure
       # ------------------------
       - name: Cleanup state lock on failure
-        if: failure()
+        if: failure() && steps.plan.outcome == 'failure'
         run: |
           echo "Attempting to release any stuck state locks..."
-          # Try to get the lock info and extract the ID
-          LOCK_INFO=$(terraform force-unlock -force 2>&1 || true)
-          echo "$LOCK_INFO"
-          # Force unlock will prompt, so we just run it non-interactively
-          # This is safe because the job is already failed
+          # Extract lock ID from state if locked
+          LOCK_ID=$(terraform force-unlock 2>&1 | grep -oP 'ID:\s+\K[a-f0-9-]+' | head -n1 || echo "")
+          if [ -n "$LOCK_ID" ]; then
+            echo "Found lock ID: $LOCK_ID"
+            echo "Force unlocking..."
+            terraform force-unlock -force "$LOCK_ID" || echo "Failed to unlock, may need manual intervention"
+          else
+            echo "No lock ID found or state is not locked"
+          fi
         continue-on-error: true
 
       # ------------------------
@@ -201,8 +205,16 @@ jobs:
       # Cleanup on Failure
       # ------------------------
       - name: Cleanup state lock on failure
-        if: failure()
+        if: failure() && steps.apply.outcome == 'failure'
         run: |
           echo "Attempting to release any stuck state locks..."
-          # This will help clean up if apply fails mid-operation
+          # Extract lock ID from state if locked
+          LOCK_ID=$(terraform force-unlock 2>&1 | grep -oP 'ID:\s+\K[a-f0-9-]+' | head -n1 || echo "")
+          if [ -n "$LOCK_ID" ]; then
+            echo "Found lock ID: $LOCK_ID"
+            echo "Force unlocking..."
+            terraform force-unlock -force "$LOCK_ID" || echo "Failed to unlock, may need manual intervention"
+          else
+            echo "No lock ID found or state is not locked"
+          fi
         continue-on-error: true
