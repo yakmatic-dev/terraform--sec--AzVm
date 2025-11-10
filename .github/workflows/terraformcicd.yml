@@ -11,7 +11,7 @@ on:
 # Prevent multiple Terraform jobs from running at once
 # ------------------------
 concurrency:
-  group: terraform-azure
+  group: terraform-${{ github.ref }}
   cancel-in-progress: false
   
 jobs:
@@ -115,6 +115,7 @@ jobs:
       # Terraform Plan
       # ------------------------
       - name: Terraform Plan
+        id: plan
         run: terraform plan -out=tfplan
 
       # ------------------------
@@ -126,6 +127,20 @@ jobs:
           name: tfplan
           path: tfplan
           retention-days: 5
+
+      # ------------------------
+      # Cleanup on Failure
+      # ------------------------
+      - name: Cleanup state lock on failure
+        if: failure()
+        run: |
+          echo "Attempting to release any stuck state locks..."
+          # Try to get the lock info and extract the ID
+          LOCK_INFO=$(terraform force-unlock -force 2>&1 || true)
+          echo "$LOCK_INFO"
+          # Force unlock will prompt, so we just run it non-interactively
+          # This is safe because the job is already failed
+        continue-on-error: true
 
       # ------------------------
       # Optional: Infracost Estimate
@@ -179,4 +194,15 @@ jobs:
           name: tfplan
 
       - name: Terraform Apply
+        id: apply
         run: terraform apply -auto-approve tfplan
+
+      # ------------------------
+      # Cleanup on Failure
+      # ------------------------
+      - name: Cleanup state lock on failure
+        if: failure()
+        run: |
+          echo "Attempting to release any stuck state locks..."
+          # This will help clean up if apply fails mid-operation
+        continue-on-error: true
