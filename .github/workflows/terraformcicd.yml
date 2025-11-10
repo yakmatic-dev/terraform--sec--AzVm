@@ -59,6 +59,11 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.13.3
+      - name: Cleanup Stale Lock (Optional)
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: |
+          terraform force-unlock -force $(terraform show -json 2>/dev/null | jq -r '.lock?.ID' || echo "")
+        continue-on-error: true
 
       - name: Terraform Init
         run: |
