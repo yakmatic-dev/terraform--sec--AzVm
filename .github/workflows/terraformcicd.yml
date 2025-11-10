@@ -1,4 +1,4 @@
-name: Terraform Azure CI/CD (Security-First)
+name: Terraform Azure CI/CD (Security-First).
 
 on:
   push:
