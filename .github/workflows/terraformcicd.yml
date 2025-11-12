@@ -117,35 +117,57 @@ jobs:
       - name: Terraform Plan
         id: plan
         timeout-minutes: 10
+        run: |
+          set +e
+          terraform plan -out=tfplan -lock-timeout=5m 2>&1 | tee plan_output.log
+          PLAN_EXIT_CODE=${PIPESTATUS[0]}
+          echo "exit_code=$PLAN_EXIT_CODE" >> $GITHUB_OUTPUT
+          exit $PLAN_EXIT_CODE
+
+      - name: Check Plan Status and Extract Lock ID
+        id: check_plan
+        if: failure() && steps.plan.outputs.exit_code != '0'
+        run: |
+          if [ -f plan_output.log ] && grep -q "state blob is already locked" plan_output.log; then
+            echo "State is locked. Extracting lock ID..."
+            LOCK_ID=$(grep -oP 'ID:\s+\K[a-f0-9-]+' plan_output.log | head -n1)
+            if [ -n "$LOCK_ID" ]; then
+              echo "lock_id=$LOCK_ID" >> $GITHUB_OUTPUT
+              echo "Found Lock ID: $LOCK_ID"
+            else
+              echo "Could not extract lock ID"
+            fi
+          else
+            echo "Plan failed for a different reason (not a lock issue)"
+            if [ -f plan_output.log ]; then
+              cat plan_output.log
+            fi
+          fi
+          exit 1
+
+      - name: Auto-unlock stuck state
+        if: failure() && steps.check_plan.outputs.lock_id != ''
+        run: |
+          LOCK_ID="${{ steps.check_plan.outputs.lock_id }}"
+          echo "Attempting to force unlock with ID: $LOCK_ID"
+          terraform force-unlock -force "$LOCK_ID"
+          echo "State unlocked successfully!"
+
+      - name: Retry Terraform Plan after unlock
+        if: steps.check_plan.outputs.lock_id != ''
+        timeout-minutes: 10
         run: terraform plan -out=tfplan -lock-timeout=5m
 
       # ------------------------
       # Upload Plan Artifact
       # ------------------------
       - name: Upload Terraform Plan
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: tfplan
           path: tfplan
           retention-days: 5
-
-      # ------------------------
-      # Cleanup on Failure
-      # ------------------------
-      - name: Cleanup state lock on failure
-        if: failure() && steps.plan.outcome == 'failure'
-        run: |
-          echo "Attempting to release any stuck state locks..."
-          # Extract lock ID from state if locked
-          LOCK_ID=$(terraform force-unlock 2>&1 | grep -oP 'ID:\s+\K[a-f0-9-]+' | head -n1 || echo "")
-          if [ -n "$LOCK_ID" ]; then
-            echo "Found lock ID: $LOCK_ID"
-            echo "Force unlocking..."
-            terraform force-unlock -force "$LOCK_ID" || echo "Failed to unlock, may need manual intervention"
-          else
-            echo "No lock ID found or state is not locked"
-          fi
-        continue-on-error: true
 
       # ------------------------
       # Optional: Infracost Estimate
@@ -210,13 +232,15 @@ jobs:
         if: failure() && steps.apply.outcome == 'failure'
         run: |
           echo "Attempting to release any stuck state locks..."
-          # Extract lock ID from state if locked
-          LOCK_ID=$(terraform force-unlock 2>&1 | grep -oP 'ID:\s+\K[a-f0-9-]+' | head -n1 || echo "")
+          # Try to extract and unlock the lock ID from the error
+          terraform plan -lock=false 2>&1 | tee plan_error.log || true
+          LOCK_ID=$(grep -oP 'ID:\s+\K[a-f0-9-]+' plan_error.log | head -n1 || echo "")
+          
           if [ -n "$LOCK_ID" ]; then
             echo "Found lock ID: $LOCK_ID"
             echo "Force unlocking..."
-            terraform force-unlock -force "$LOCK_ID" || echo "Failed to unlock, may need manual intervention"
+            terraform force-unlock -force "$LOCK_ID" && echo "Successfully unlocked!" || echo "Failed to unlock"
           else
-            echo "No lock ID found or state is not locked"
+            echo "No lock ID found in error output"
           fi
         continue-on-error: true
