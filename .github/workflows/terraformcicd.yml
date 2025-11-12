@@ -29,7 +29,7 @@ jobs:
       ARM_TENANT_ID: ${{ secrets.TENANT_ID }}
       ARM_USE_AZUREAD_AUTH: true
       TF_VAR_application: "myapp"  # Set your application name here
-      #INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+      INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -173,16 +173,16 @@ jobs:
       # ------------------------
       # Optional: Infracost Estimate
       # ------------------------
-     # - name: Install Infracost
-      #  run: |
-       #   curl -sL https://downloads.infracost.io/infracost-0.11.18-linux-amd64.tar.gz | tar xz
-        #  sudo mv infracost /usr/local/bin/
+      - name: Install Infracost
+        run: |
+          curl -sL https://downloads.infracost.io/infracost-0.11.18-linux-amd64.tar.gz | tar xz
+          sudo mv infracost /usr/local/bin/
 
-     # - name: Run Infracost
-      #  run: infracost breakdown --path . --format table
-      #  continue-on-error: true
-      #  env:
-      #    INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+      - name: Run Infracost
+        run: infracost breakdown --path . --format table
+        continue-on-error: true
+        env:
+          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
 
   apply:
     name: Terraform Apply (Manual Approval)
