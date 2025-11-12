@@ -28,6 +28,7 @@ jobs:
       ARM_SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
       ARM_TENANT_ID: ${{ secrets.TENANT_ID }}
       ARM_USE_AZUREAD_AUTH: true
+      TF_VAR_application: "myapp"  # Set your application name here
       #INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
     steps:
       - name: Checkout repository
@@ -119,7 +120,7 @@ jobs:
         timeout-minutes: 10
         run: |
           set +e
-          terraform plan -out=tfplan -lock-timeout=5m 2>&1 | tee plan_output.log
+          terraform plan -out=tfplan -lock-timeout=5m -input=false -var-file="env/dev.tfvars" 2>&1 | tee plan_output.log
           PLAN_EXIT_CODE=${PIPESTATUS[0]}
           echo "exit_code=$PLAN_EXIT_CODE" >> $GITHUB_OUTPUT
           exit $PLAN_EXIT_CODE
@@ -156,7 +157,7 @@ jobs:
       - name: Retry Terraform Plan after unlock
         if: steps.check_plan.outputs.lock_id != ''
         timeout-minutes: 10
-        run: terraform plan -out=tfplan -lock-timeout=5m
+        run: terraform plan -out=tfplan -lock-timeout=5m -input=false -var-file="env/dev.tfvars"
 
       # ------------------------
       # Upload Plan Artifact
@@ -223,7 +224,7 @@ jobs:
       - name: Terraform Apply
         id: apply
         timeout-minutes: 30
-        run: terraform apply -auto-approve tfplan -lock-timeout=10m
+        run: terraform apply -auto-approve -lock-timeout=10m tfplan
 
       # ------------------------
       # Cleanup on Failure
