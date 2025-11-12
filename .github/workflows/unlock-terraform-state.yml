@@ -6,7 +6,7 @@ on:
       lock_id:
         description: 'Lock ID to unlock (leave empty to use the current stuck lock)'
         required: false
-        default: 'fa0664c3-f474-8c95-ddd7-d4dcd35cf635'
+        default: 'f9fca430-c1b5-bea6-8e2a-8697ef5cbf92'
 
 jobs:
   unlock:
