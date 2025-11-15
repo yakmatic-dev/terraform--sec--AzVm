@@ -173,16 +173,19 @@ jobs:
       # ------------------------
       # Optional: Infracost Estimate
       # ------------------------
-      - name: Install Infracost
-        run: |
-          curl -sL https://downloads.infracost.io/infracost-0.11.18-linux-amd64.tar.gz | tar xz
-          sudo mv infracost /usr/local/bin/
+      # ------------------------
+# Optional: Infracost Estimate
+# ------------------------
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3
+        with:
+         api-key: ${{ secrets.INFRACOST_API_KEY }}
 
       - name: Run Infracost
-        run: infracost breakdown --path . --format table
+        run: |
+          infracost breakdown --path . --format table
         continue-on-error: true
-        env:
-          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+
 
   apply:
     name: Terraform Apply (Manual Approval)
