@@ -57,3 +57,13 @@ module "nsg_association" {
   subnet_id   = module.subnet.id
   nsg_id      = module.nsg.id
 }
+
+module "public_ip" {
+  source            = "./modules/public-ip"
+  application       = var.application
+  environment       = var.environment
+  name              = "pip-${var.application}-${var.environment}-01"
+  rgname            = module.resource_group.name
+  location          = module.resource_group.location
+  allocation_method = "Static"
+}
