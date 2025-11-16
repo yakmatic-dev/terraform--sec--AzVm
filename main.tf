@@ -7,6 +7,7 @@ module "resource_group" {
 
 module "virtual_network" {
   source             = "./modules/virtual-network"
+  vnet_name          = "vnet-${var.application}-${var.environment}"
   application        = var.application
   environment        = var.environment
   rg_name            = module.resource_group.name
@@ -16,6 +17,7 @@ module "virtual_network" {
 
 module "subnet" {
   source                    = "./modules/subnet"
+  name                      = "subnet-alpha"
   application               = var.application
   environment               = var.environment
   rg_name                   = module.resource_group.name
@@ -23,3 +25,26 @@ module "subnet" {
   local_alpha_address_space = module.virtual_network.alpha_address_space
 
 }
+
+module "nsg" {
+  source   = "./modules/NSG"
+  nsg_name = "nsg-${var.application}-${var.environment}"
+  location = module.resource_group.location
+  rg_name  = module.resource_group.name
+
+  security_rules = [
+    {
+      name                       = "ssh-allow"
+      priority                   = 100
+      direction                  = "Inbound"
+      access                     = "Allow"
+      protocol                   = "Tcp"
+      source_port_range          = ""
+      destination_port_range     = "22"
+      source_address_prefix      = "*"
+      destination_address_prefix = "*"
+    }
+
+  ]
+}
+
