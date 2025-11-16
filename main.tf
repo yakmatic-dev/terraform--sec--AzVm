@@ -27,10 +27,12 @@ module "subnet" {
 }
 
 module "nsg" {
-  source   = "./modules/NSG"
-  nsg_name = "nsg-${var.application}-${var.environment}"
-  location = module.resource_group.location
-  rg_name  = module.resource_group.name
+  source      = "./modules/NSG"
+  nsg_name    = "nsg-${var.application}-${var.environment}"
+  application = var.application
+  environment = var.environment
+  location    = module.resource_group.location
+  rg_name     = module.resource_group.name
 
   security_rules = [
     {
@@ -39,7 +41,7 @@ module "nsg" {
       direction                  = "Inbound"
       access                     = "Allow"
       protocol                   = "Tcp"
-      source_port_range          = ""
+      source_port_range          = "*"
       destination_port_range     = "22"
       source_address_prefix      = "*"
       destination_address_prefix = "*"
@@ -48,3 +50,10 @@ module "nsg" {
   ]
 }
 
+module "nsg_association" {
+  source      = "./modules/NSG-association"
+  application = var.application
+  environment = var.environment
+  subnet_id   = module.subnet.id
+  nsg_id      = module.nsg.id
+}
