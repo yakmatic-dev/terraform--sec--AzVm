@@ -22,3 +22,8 @@ variable "local_alpha_address_space" {
   description = "Local alpha variable for address spaces"
   type        = string
 }
+
+variable "name" {
+  description = "Name of the Subnet"
+  type        = string
+}
