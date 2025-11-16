@@ -20,3 +20,8 @@ variable "rg_name" {
   description = "Resource Group name where the VNet will be created"
   type        = string
 }
+
+variable "vnet_name" {
+  description = "vnet_name"
+  type        = string
+}

@@ -8,7 +8,7 @@ locals {
 
 
 resource "azurerm_virtual_network" "main" {
-  name                = "vnet-${var.application}-${var.environment}"
+  name                = var.vnet_name
   location            = var.primary_location
   resource_group_name = var.rg_name
   address_space       = [var.base_address_space]
