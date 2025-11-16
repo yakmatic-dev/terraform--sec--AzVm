@@ -3,3 +3,4 @@ resource "azurerm_resource_group" "main" {
   location = var.primary_location
 
 }
+
