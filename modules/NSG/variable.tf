@@ -1,3 +1,13 @@
+variable "application" {
+  type        = string
+  description = "app name"
+}
+
+variable "environment" {
+  type        = string
+  description = "env name"
+}
+
 variable "nsg_name" {
   type        = string
   description = "Name of the network security group"
