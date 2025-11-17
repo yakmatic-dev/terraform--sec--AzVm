@@ -67,3 +67,22 @@ module "public_ip" {
   location          = module.resource_group.location
   allocation_method = "Static"
 }
+
+
+module "nic" {
+  source      = "./modules/NIC"
+  nic_name    = "nic-${var.application}-${var.environment}-01"
+  application = var.application
+  environment = var.environment
+  rg_name     = module.resource_group.name
+  location    = module.resource_group.location
+
+  ip_configurations = [
+    {
+      name                  = "ipconfig1"
+      subnet_id             = module.subnet.id
+      private_ip_allocation = "Dynamic"
+      public_ip_id          = module.public_ip.id
+    }
+  ]
+}
