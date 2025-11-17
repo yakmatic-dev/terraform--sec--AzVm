@@ -27,7 +27,7 @@ module "subnet" {
 }
 
 module "nsg" {
-  source      = "./modules/NSG"
+  source      = "./modules/nsg"
   nsg_name    = "nsg-${var.application}-${var.environment}"
   application = var.application
   environment = var.environment
@@ -51,7 +51,7 @@ module "nsg" {
 }
 
 module "nsg_association" {
-  source      = "./modules/NSG-association"
+  source      = "./modules/nsg-association"
   application = var.application
   environment = var.environment
   subnet_id   = module.subnet.id
@@ -70,7 +70,7 @@ module "public_ip" {
 
 
 module "nic" {
-  source      = "./modules/NiC"
+  source      = "./modules/nic"
   nic_name    = "nic-${var.application}-${var.environment}-01"
   application = var.application
   environment = var.environment
