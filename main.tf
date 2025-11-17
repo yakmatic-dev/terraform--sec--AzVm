@@ -70,7 +70,7 @@ module "public_ip" {
 
 
 module "nic" {
-  source      = "./modules/NIC"
+  source      = "./modules/NiC"
   nic_name    = "nic-${var.application}-${var.environment}-01"
   application = var.application
   environment = var.environment
