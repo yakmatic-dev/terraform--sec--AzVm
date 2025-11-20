@@ -16,6 +16,11 @@ variable "environment" {
   type        = string
 }
 
+variable "log_analytics_workspace_id" {
+  description = "The ID of the Log Analytics Workspace to link to the Key Vault diagnostics"
+  type        = string
+
+}
 
 
 variable "sku_name" {
