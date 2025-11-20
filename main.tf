@@ -156,6 +156,8 @@ module "kv" {
   soft_delete_retention_days = 7
   application                = var.application
   environment                = var.environment
+  log_analytics_workspace_id = module.log_analytics_workspace.id
+
 
 }
 
@@ -168,3 +170,18 @@ module "kv_secret" {
   depends_on   = [module.kv]
 
 }
+
+module "log_analytics_workspace" {
+  source              = "./modules/log_analytics_workspace"
+  name                = "law-${var.application}-${var.environment}"
+  location            = module.resource_group.location
+  resource_group_name = module.resource_group.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+
+  tags = {
+    environment = var.environment
+    application = var.application
+  }
+}
+
