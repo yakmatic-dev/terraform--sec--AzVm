@@ -86,3 +86,83 @@ module "nic" {
     }
   ]
 }
+
+module "vm" {
+  source = "./modules/linuxvm"
+
+  vm_name        = "linuxvm1"
+  rg_name        = module.resource_group.name
+  location       = module.resource_group.location
+  vm_size        = "Standard_B2ms"
+  admin_username = "yakmat"
+  environment    = var.environment
+  application    = var.application
+
+
+
+  # Attach NIC(s)
+  network_interface_ids = [
+    module.nic.id
+  ]
+
+  # Dynamic SSH users
+  admin_users = [
+    { username = "yakmat" },
+    { username = "admin2" }
+  ]
+
+  # Optional: manually provided SSH keys
+  # admin_ssh_keys = [
+  #   {
+  #     username   = "yakmat"
+  #     public_key = file("~/.ssh/id_rsa.pub")
+  #   }
+  # ]
+
+  # OS disk configuration
+  os_disk = {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+    disk_size_gb         = 64
+  }
+
+  # Optional: additional data disks
+  # data_disks = [
+  #   {
+  #     lun                  = 0
+  #     caching              = "ReadOnly"
+  #     storage_account_type = "Premium_LRS"
+  #     disk_size_gb         = 128
+  #   }
+  # ]
+
+  # VM image configuration
+  image = {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-jammy"
+    sku       = "22_04-lts"
+    version   = "latest"
+  }
+}
+
+
+module "kv" {
+  source                     = "./modules/kv"
+  rg_name                    = module.resource_group.name
+  location                   = module.resource_group.location
+  sku_name                   = "standard"
+  rbac_authorization_enabled = true
+  purge_protection_enabled   = false
+  soft_delete_retention_days = 7
+  application                = var.application
+  environment                = var.environment
+
+}
+
+module "kv_secret" {
+  source       = "./modules/kvsecret"
+  key_vault_id = module.kv.id
+  admin_users  = module.vm.admin_users
+  private_keys = module.vm.private_keys
+  public_keys  = module.vm.public_keys
+}
