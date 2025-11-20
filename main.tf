@@ -165,4 +165,6 @@ module "kv_secret" {
   admin_users  = module.vm.admin_users
   private_keys = module.vm.private_keys
   public_keys  = module.vm.public_keys
+  depends_on   = [module.kv]
+
 }
